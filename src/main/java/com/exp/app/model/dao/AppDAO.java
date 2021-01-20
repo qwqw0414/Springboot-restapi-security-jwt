@@ -12,8 +12,12 @@ public class AppDAO {
 	@Autowired
 	private SqlSessionTemplate sst;
 
-	public int insertUser(User user) {
+	public int insertUser(User user) throws RuntimeException {
 		return sst.insert("app.insertUser", user);
 	}
-	
+
+	public User selectOneById(String userId) throws RuntimeException{
+		return sst.selectOne("app.selectOneById", userId);
+	}
+
 }

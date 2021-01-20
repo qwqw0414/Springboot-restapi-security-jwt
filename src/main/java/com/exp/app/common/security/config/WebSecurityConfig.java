@@ -2,6 +2,7 @@ package com.exp.app.common.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -10,47 +11,42 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.exp.app.common.filter.JwtAuthenticationFilter;
+import com.exp.app.common.security.jwt.JwtTokenProvider;
+
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 
 		private static String[] PUBLIC_URL = {"/api/home", "/api/signup", "/api/signin"};
-	
+	    private final JwtTokenProvider jwtTokenProvider;
+		
 	    @Override
 	    protected void configure(HttpSecurity http) throws Exception {
 	        http
-            	// 개발 편의성을 위해 CSRF 프로텍션을 비활성화
-            	.csrf()
-            		.disable()
-            		
-            	// HTTP 기본 인증 비활성화
-                .httpBasic()
-                	.disable()
-                	
-                // 폼 기반 인증 비활성화  
-                .formLogin()
-                	.disable()
-                	
-                // stateless한 세션 정책 설정  
-                .sessionManagement()
-                	.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .and()
-                    
-                 // 리소스 별 허용 범위 설정  
-                .authorizeRequests().antMatchers(PUBLIC_URL).permitAll()
-                	.anyRequest()
-                		.authenticated()
-                	.and()
-                	
-             // 인증 오류 발생 시 처리를 위한 핸들러 추가  
-//                .exceptionHandling()
-//                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-	        
-//	        http
-//	        	.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
-	        ;
+            	.httpBasic().disable() // rest api 만을 고려하여 기본 설정은 해제하겠습니다.
+            	.csrf().disable() // csrf 보안 토큰 disable처리.
+            	.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 토큰 기반 인증이므로 세션 역시 사용하지 않습니다.
+            	.and()
+            	.authorizeRequests() // 요청에 대한 사용권한 체크
+            	.antMatchers("/admin/**").hasRole("ADMIN")
+            	.antMatchers("/user/**").hasRole("USER")
+            	.anyRequest().permitAll() // 그외 나머지 요청은 누구나 접근 가능
+            	.and()
+            	.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+            // JwtAuthenticationFilter를 UsernamePasswordAuthenticationFilter 전에 넣는다
 	    }
 	
+	    // authenticationManager를 Bean 등록합니다.
+	    @Bean
+	    @Override
+	    public AuthenticationManager authenticationManagerBean() throws Exception {
+	        return super.authenticationManagerBean();
+	    }
+	    
 		@Bean
 		public PasswordEncoder passwordEncoder() {
 			return new BCryptPasswordEncoder();

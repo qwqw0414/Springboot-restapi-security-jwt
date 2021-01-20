@@ -3,9 +3,13 @@
 <mapper namespace="app">
 
 	<insert id="insertUser" parameterType="User">
-	
-		insert into jwt.user(user_id, password) values( #{userId}, #{password})
-		
+		insert into jwt.user(id, password, role) values( #{id}, #{password}, #{role})
 	</insert>
+
+	<select id="selectOneById" resultType="User">
+		SELECT *
+	    FROM USER 
+	    WHERE ID = #{id}
+	</select>
 
 </mapper>
